@@ -6,7 +6,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/dashboard', '/admin', '/login', '/api/'],
+      // /login không chặn ở đây: cần để Google đọc được thẻ noindex của trang.
+      disallow: ['/dashboard', '/admin', '/api/'],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

@@ -21,7 +21,43 @@ Biến môi trường tuỳ chọn: `NEXT_PUBLIC_SITE_URL` (URL gốc cho sitema
 
 ## Chiến lược render từng route
 
-> TODO: chèn ảnh kết quả `pnpm build` tại đây (`docs/build.png`).
+Kết quả `pnpm build` (Next.js 16.0.10):
+
+```text
+Route (app)                                 Revalidate  Expire
+┌ ○ /
+├ ○ /_not-found
+├ ○ /403
+├ ƒ /admin
+├ ƒ /api/auth/[...nextauth]
+├ ƒ /dashboard
+├ ƒ /dashboard/done
+├ ○ /deadlines                                      1m      1y
+├ ● /deadlines/[id]                                 1h      1y
+│ ├ /deadlines/8                                    1h      1y
+│ ├ /deadlines/4                                    1h      1y
+│ ├ /deadlines/3                                    1h      1y
+│ └ [+9 more paths]
+├ ƒ /deadlines/[id]/opengraph-image-104vc5
+├ ƒ /login
+├ ○ /robots.txt
+├ ○ /sitemap.xml
+└ ● /subjects/[slug]
+  ├ /subjects/lap-trinh-web-nang-cao
+  ├ /subjects/co-so-du-lieu
+  ├ /subjects/mang-may-tinh
+  └ /subjects/cong-nghe-phan-mem
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+```
+
+![Kết quả pnpm build](docs/build.png)
+
+Chú thích: `○` = tĩnh (SSG, hoặc ISR nếu có cột Revalidate), `●` = SSG theo `generateStaticParams`, `ƒ` = SSR theo từng request.
 
 | Route | Truy cập | Chiến lược | Lý do |
 |---|---|---|---|
@@ -43,20 +79,51 @@ Id không tồn tại → `notFound()` → trang 404 của dự án. Header côn
 
 ## SEO
 
-Metadata động + ảnh OG sinh động cho `/deadlines/[id]`, JSON-LD `BreadcrumbList`, `sitemap.xml` (mọi deadline), `robots.txt` (chặn `/dashboard`, `/admin`, `/login`), `noindex` cho `/login`, `/dashboard`, `/admin`, `next/font` (Be Vietnam Pro, subset vietnamese), `next/image`.
+Metadata động + ảnh OG sinh động cho `/deadlines/[id]`, JSON-LD `BreadcrumbList`, `sitemap.xml` (mọi deadline), `robots.txt` (chặn `/dashboard`, `/admin`), `noindex` (meta robots) cho `/login`, `/dashboard`, `/admin`, `next/font` (Be Vietnam Pro, subset vietnamese), `next/image`.
 
 ## Lighthouse (bản production)
 
-> TODO: đo bằng Chrome DevTools trên `pnpm start`.
+Đo bằng Lighthouse CLI (Chrome headless) trên bản production `pnpm build && pnpm start`, 2 chế độ:
+
+| Trang | Thiết bị | Performance | Accessibility | Best Practices | SEO | LCP |
+|---|---|---|---|---|---|---|
+| `/` | Mobile | 94 | 96 | 96 | 100 | 3.1 s |
+| `/` | Desktop | 100 | 96 | 96 | 100 | 0.2 s |
+| `/deadlines/1` | Mobile | 100 | 95 | 96 | 100 | 0.8 s |
+| `/deadlines/1` | Desktop | 100 | 95 | 96 | 100 | 0.2 s |
+
+Điểm có thể lệch vài điểm giữa các lần đo.
+
+Đo lại bằng Chrome DevTools (tab Lighthouse, desktop, chưa đăng nhập) trên bản production:
 
 | Trang | Performance | Accessibility | Best Practices | SEO |
 |---|---|---|---|---|
-| `/` | | | | |
-| `/deadlines/1` | | | | |
+| `/deadlines/1` | 100 | 95 | 100 | 100 |
+| `/deadlines` | 100 | 96 | 100 | 100 |
+
+![Lighthouse /deadlines/1](docs/lighthouse-deadline-1.webp)
+
+![Lighthouse /deadlines](docs/lighthouse-deadlines.webp)
 
 ## View-source `/deadlines/1`
 
-> TODO: chèn ảnh `view-source:` (thấy `<title>`, thẻ OG, JSON-LD và nội dung trong HTML).
+![view-source /deadlines/1](docs/view-source.png)
+
+HTML do server trả về cho `/deadlines/1` (trích từ `view-source`): tiêu đề, metadata, ảnh OG, JSON-LD và nội dung đã có sẵn trong HTML, không cần chạy JavaScript.
+
+```html
+<title>BTTH 3: Xây dựng Class Deadline Hub | Class Deadline Hub</title>
+<meta name="description" content="Lập trình web nâng cao · Hạn nộp 23:59 20 thg 11, 2026. Xây dựng cổng deadline của lớp bằng Next.js: SSG, ISR, SSR, NextAuth, middleware và SEO."/>
+<link rel="canonical" href="http://localhost:3000/deadlines/1"/>
+<meta property="og:title" content="BTTH 3: Xây dựng Class Deadline Hub"/>
+<meta property="og:image" content="http://localhost:3000/deadlines/1/opengraph-image-104vc5?331ea3b0b47928a2"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:type" content="article"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Trang chủ","item":"http://localhost:3000"},{"@type":"ListItem","position":2,"name":"Deadline","item":"http://localhost:3000/deadlines"},{"@type":"ListItem","position":3,"name":"BTTH 3: Xây dựng Class Deadline Hub","item":"http://localhost:3000/deadlines/1"}]}</script>
+<h1 class="text-3xl font-bold">BTTH 3: Xây dựng Class Deadline Hub</h1>
+```
 
 ## Trả lời câu hỏi
 
