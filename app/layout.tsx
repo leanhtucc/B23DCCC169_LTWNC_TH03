@@ -1,34 +1,26 @@
 import '@/app/ui/global.css';
-import { inter } from '@/app/ui/fonts';
 import type { Metadata } from 'next';
+import { beVietnam } from '@/app/ui/fonts';
+import { SITE_NAME, SITE_URL } from '@/app/lib/site';
+import Providers from '@/app/ui/providers';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://acme-dashboard-demo.vercel.app'),
+  metadataBase: new URL(SITE_URL),
   title: {
-    template: '%s | Acme Dashboard',
-    default: 'Acme Dashboard - Quản trị Tài chính Doanh nghiệp',
+    template: `%s | ${SITE_NAME}`,
+    default: `${SITE_NAME} - Cổng deadline của lớp`,
   },
   description:
-    'Hệ thống quản lý tài chính, khách hàng và phát hành hoá đơn hiện đại xây dựng trên Next.js 15 và NextAuth v5.',
-  keywords: [
-    'Next.js',
-    'Dashboard',
-    'NextAuth',
-    'PostgreSQL',
-    'Tailwind CSS',
-    'SEO',
-  ],
-  authors: [{ name: 'Acme Inc' }],
+    'Theo dõi deadline các môn học của lớp: xem công khai, đăng nhập để đánh dấu hoàn thành.',
+  openGraph: { siteName: SITE_NAME, locale: 'vi_VN', type: 'website' },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi">
-      <body className={`${inter.className} antialiased`}>{children}</body>
+      <body className={`${beVietnam.className} bg-gray-50 text-gray-900 antialiased`}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

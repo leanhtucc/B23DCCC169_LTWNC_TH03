@@ -1,201 +1,130 @@
 'use server';
 
-import { z } from 'zod';
-import postgres from 'postgres';
+import { AuthError } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { signIn, signOut, auth } from '@/auth';
-import { AuthError } from 'next-auth';
+import { z } from 'zod';
+import { auth, signIn } from '@/auth';
+import { can, type Action } from '@/app/lib/permissions';
+import {
+  addDeadline,
+  deleteDeadline,
+  getDeadline,
+  getSubjects,
+  toggleDone,
+} from '@/app/lib/db';
 
-const isLocalhost =
-  process.env.POSTGRES_URL?.includes('localhost') ||
-  process.env.POSTGRES_URL?.includes('127.0.0.1');
+// ---------- Đăng nhập ----------
 
-const isSampleUrl =
-  !process.env.POSTGRES_URL ||
-  process.env.POSTGRES_URL.includes('sample') ||
-  process.env.POSTGRES_URL.includes('your_');
+function safeRedirect(target: FormDataEntryValue | null) {
+  const value = typeof target === 'string' ? target : '';
+  return value.startsWith('/') && !value.startsWith('//') ? value : '/dashboard';
+}
 
-const sql = postgres(process.env.POSTGRES_URL || '', {
-  ssl: isLocalhost ? false : 'require',
-  connect_timeout: 3,
-});
-
-const FormSchema = z.object({
-  id: z.string(),
-  customerId: z.string({
-    invalid_type_error: 'Vui lòng chọn khách hàng.',
-  }),
-  amount: z.coerce
-    .number()
-    .gt(0, { message: 'Vui lòng nhập số tiền lớn hơn 0 USD.' }),
-  status: z.enum(['pending', 'paid'], {
-    invalid_type_error: 'Vui lòng chọn trạng thái hoá đơn.',
-  }),
-  date: z.string(),
-});
-
-const CreateInvoice = FormSchema.omit({ id: true, date: true });
-const UpdateInvoice = FormSchema.omit({ id: true, date: true });
-
-export type State = {
-  errors?: {
-    customerId?: string[];
-    amount?: string[];
-    status?: string[];
-  };
-  message?: string | null;
-};
-
-// ==========================================
-// 1. Xác thực đăng nhập qua Email / Mật khẩu
-// ==========================================
 export async function authenticate(
-  prevState: string | undefined,
+  _prev: string | undefined,
   formData: FormData,
 ) {
   try {
-    await signIn('credentials', formData);
+    await signIn('credentials', {
+      email: formData.get('email'),
+      password: formData.get('password'),
+      redirectTo: safeRedirect(formData.get('redirectTo')),
+    });
   } catch (error) {
     if (error instanceof AuthError) {
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return 'Email hoặc mật khẩu không chính xác.';
-        default:
-          return 'Đã xảy ra lỗi khi xác thực tài khoản.';
-      }
+      return error.type === 'CredentialsSignin'
+        ? 'Email hoặc mật khẩu không đúng.'
+        : 'Đã có lỗi xảy ra, vui lòng thử lại.';
     }
-    throw error;
+    throw error; // redirect khi đăng nhập thành công
   }
 }
 
-// ==========================================
-// 2. Xác thực đăng nhập qua OAuth Provider
-// ==========================================
-export async function authenticateOAuth(provider: 'github' | 'google') {
-  await signIn(provider, { redirectTo: '/dashboard' });
+export async function authenticateGitHub(formData: FormData) {
+  await signIn('github', { redirectTo: safeRedirect(formData.get('redirectTo')) });
 }
 
-// ==========================================
-// 3. Đăng xuất
-// ==========================================
-export async function handleSignOut() {
-  await signOut({ redirectTo: '/login' });
-}
+// ---------- Kiểm tra quyền dùng chung cho mọi Server Action ----------
 
-// =========================================================================
-// 4. Lớp 3: Server Action RBAC Protection - Tạo hoá đơn (Chỉ Admin)
-// =========================================================================
-export async function createInvoice(prevState: State, formData: FormData) {
+async function requireCan(action: Action) {
   const session = await auth();
-
-  // Kiểm tra quyền Admin ở tầng Server Action
-  if (!session?.user || session.user.role !== 'admin') {
-    return {
-      message: 'Lỗi quyền truy cập: Chỉ có quản trị viên (Admin) mới có quyền tạo hoá đơn.',
-    };
-  }
-
-  const validatedFields = CreateInvoice.safeParse({
-    customerId: formData.get('customerId'),
-    amount: formData.get('amount'),
-    status: formData.get('status'),
-  });
-
-  if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Thiếu hoặc sai trường dữ liệu. Không thể tạo hoá đơn.',
-    };
-  }
-
-  const { customerId, amount, status } = validatedFields.data;
-  const amountInCents = Math.round(amount * 100);
-  const date = new Date().toISOString().split('T')[0];
-
-  if (!isSampleUrl) {
-    try {
-      await sql`
-        INSERT INTO invoices (customer_id, amount, status, date)
-        VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
-      `;
-    } catch (error) {
-      console.warn('PostgreSQL query error on createInvoice (using fallback mode):', error);
-    }
-  }
-
-  revalidatePath('/dashboard/invoices');
-  redirect('/dashboard/invoices');
+  if (!session?.user) redirect('/login');
+  if (!can(session.user.role, action)) redirect('/403');
+  return session.user;
 }
 
-// =========================================================================
-// 5. Lớp 3: Server Action RBAC Protection - Cập nhật hoá đơn (Chỉ Admin)
-// =========================================================================
-export async function updateInvoice(
-  id: string,
-  prevState: State,
+function revalidateDeadlines(id?: number, subjectSlug?: string) {
+  revalidatePath('/');
+  revalidatePath('/deadlines');
+  revalidatePath('/sitemap.xml');
+  revalidatePath('/dashboard');
+  revalidatePath('/admin');
+  if (id !== undefined) revalidatePath(`/deadlines/${id}`);
+  if (subjectSlug) revalidatePath(`/subjects/${subjectSlug}`);
+}
+
+// ---------- Đánh dấu đã xong (user, admin) ----------
+
+const IdSchema = z.coerce.number().int().positive();
+
+export async function toggleDoneAction(formData: FormData) {
+  const user = await requireCan('markDone');
+  const id = IdSchema.safeParse(formData.get('id'));
+  if (!id.success || !(await getDeadline(id.data))) return;
+
+  await toggleDone(user.id, id.data);
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/done');
+}
+
+// ---------- Thêm / xoá (admin) ----------
+
+const AddSchema = z.object({
+  title: z.string().trim().min(3, 'Tiêu đề tối thiểu 3 ký tự').max(100, 'Tiêu đề tối đa 100 ký tự'),
+  subjectSlug: z.string().min(1, 'Hãy chọn môn học'),
+  dueDate: z
+    .string()
+    .refine((v) => !Number.isNaN(Date.parse(v)), 'Hạn nộp không hợp lệ'),
+  description: z.string().trim().max(500, 'Mô tả tối đa 500 ký tự').default(''),
+});
+
+export type AddState = {
+  ok?: boolean;
+  errors?: Partial<Record<'title' | 'subjectSlug' | 'dueDate' | 'description', string[]>>;
+  message?: string;
+};
+
+export async function addDeadlineAction(
+  _prev: AddState,
   formData: FormData,
-) {
-  const session = await auth();
+): Promise<AddState> {
+  await requireCan('add');
 
-  // Kiểm tra quyền Admin ở tầng Server Action
-  if (!session?.user || session.user.role !== 'admin') {
-    return {
-      message: 'Lỗi quyền truy cập: Chỉ có quản trị viên (Admin) mới có quyền chỉnh sửa hoá đơn.',
-    };
+  const parsed = AddSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors, message: 'Dữ liệu không hợp lệ.' };
+  }
+  const subjects = await getSubjects();
+  if (!subjects.some((s) => s.slug === parsed.data.subjectSlug)) {
+    return { errors: { subjectSlug: ['Môn học không tồn tại'] }, message: 'Dữ liệu không hợp lệ.' };
   }
 
-  const validatedFields = UpdateInvoice.safeParse({
-    customerId: formData.get('customerId'),
-    amount: formData.get('amount'),
-    status: formData.get('status'),
+  const created = await addDeadline({
+    ...parsed.data,
+    dueDate: new Date(parsed.data.dueDate).toISOString(),
   });
-
-  if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Thiếu dữ liệu bắt buộc. Không thể cập nhật hoá đơn.',
-    };
-  }
-
-  const { customerId, amount, status } = validatedFields.data;
-  const amountInCents = Math.round(amount * 100);
-
-  if (!isSampleUrl) {
-    try {
-      await sql`
-        UPDATE invoices
-        SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-        WHERE id = ${id}
-      `;
-    } catch (error) {
-      console.warn('PostgreSQL query error on updateInvoice (using fallback mode):', error);
-    }
-  }
-
-  revalidatePath('/dashboard/invoices');
-  redirect('/dashboard/invoices');
+  revalidateDeadlines(created.id, created.subjectSlug);
+  return { ok: true, message: `Đã thêm deadline #${created.id}.` };
 }
 
-// =========================================================================
-// 6. Lớp 3: Server Action RBAC Protection - Xoá hoá đơn (Chỉ Admin)
-// =========================================================================
-export async function deleteInvoice(id: string) {
-  const session = await auth();
+export async function deleteDeadlineAction(formData: FormData) {
+  await requireCan('delete');
+  const id = IdSchema.safeParse(formData.get('id'));
+  if (!id.success) return;
 
-  // Lớp phòng thủ cốt lõi: Ngăn chặn triệt để hành vi bypass qua POST request trực tiếp
-  if (!session?.user || session.user.role !== 'admin') {
-    throw new Error('Forbidden: Bạn không có quyền thực hiện hành động này. Yêu cầu quyền Admin.');
-  }
-
-  if (!isSampleUrl) {
-    try {
-      await sql`DELETE FROM invoices WHERE id = ${id}`;
-    } catch (error) {
-      console.warn('PostgreSQL query error on deleteInvoice (using fallback mode):', error);
-    }
-  }
-
-  revalidatePath('/dashboard/invoices');
-  return { message: 'Đã xoá hoá đơn thành công.' };
+  const existing = await getDeadline(id.data);
+  if (!existing) return;
+  await deleteDeadline(id.data);
+  revalidateDeadlines(id.data, existing.subjectSlug);
 }

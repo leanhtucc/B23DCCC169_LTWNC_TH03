@@ -1,12 +1,13 @@
 import type { MetadataRoute } from 'next';
+import { SITE_URL } from '@/app/lib/site';
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      allow: ['/', '/login'],
-      disallow: ['/dashboard/', '/api/'],
+      allow: '/',
+      disallow: ['/dashboard', '/admin', '/login', '/api/'],
     },
-    sitemap: 'https://acme-dashboard-demo.vercel.app/sitemap.xml',
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

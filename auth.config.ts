@@ -1,51 +1,40 @@
 import type { NextAuthConfig } from 'next-auth';
+import { can } from '@/app/lib/permissions';
+import type { AuthRole } from '@/app/lib/definitions';
 
+// Cấu hình nhẹ, an toàn cho proxy/edge (không import fs hay provider nặng).
 export const authConfig = {
-  pages: {
-    signIn: '/login',
-  },
+  pages: { signIn: '/login' },
+  session: { strategy: 'jwt' },
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user;
-      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
-      const isAdminRoute =
-        nextUrl.pathname.startsWith('/dashboard/admin') ||
-        nextUrl.pathname.startsWith('/dashboard/invoices/create') ||
-        nextUrl.pathname.includes('/edit');
+      const { pathname, search } = nextUrl;
+      const isProtected =
+        pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
+      if (!isProtected) return true;
 
-      if (isOnDashboard) {
-        if (!isLoggedIn) {
-          return false; // Chuyển hướng người dùng chưa đăng nhập về /login
-        }
-
-        // =====================================================================
-        // LỚP 1: BẢO VỆ ROUTE BẰNG EDGE MIDDLEWARE
-        // Ngay khi request đến Edge, kiểm tra vai trò admin
-        // Nếu user thường cố tình truy cập URL admin -> Lập tức chặn & redirect
-        // =====================================================================
-        if (isAdminRoute && auth?.user?.role !== 'admin') {
-          return Response.redirect(new URL('/unauthorized', nextUrl));
-        }
-
-        return true;
-      } else if (isLoggedIn && nextUrl.pathname === '/login') {
-        return Response.redirect(new URL('/dashboard', nextUrl));
+      if (!auth?.user) {
+        const url = new URL('/login', nextUrl);
+        url.searchParams.set('callbackUrl', pathname + search);
+        return Response.redirect(url);
       }
-
+      if (pathname.startsWith('/admin') && !can(auth.user.role, 'add')) {
+        return Response.redirect(new URL('/403', nextUrl));
+      }
       return true;
     },
-    async jwt({ token, user }) {
+    jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
+        token.id = user.id ?? token.sub ?? '';
+        token.role = user.role ?? 'user';
       }
       return token;
     },
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.role = token.role as 'admin' | 'user';
-      }
+    session({ session, token }) {
+      session.user.id = token.id as string;
+      session.user.role = token.role as AuthRole;
       return session;
     },
   },
-  providers: [], // Sẽ được bổ sung đầy đủ providers trong auth.ts
+  providers: [],
 } satisfies NextAuthConfig;

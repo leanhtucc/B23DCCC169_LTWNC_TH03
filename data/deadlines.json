@@ -1,0 +1,23 @@
+{
+  "subjects": [
+    { "slug": "lap-trinh-web-nang-cao", "name": "Lập trình web nâng cao", "teacher": "ThS. Nguyễn Văn An" },
+    { "slug": "co-so-du-lieu", "name": "Cơ sở dữ liệu", "teacher": "TS. Trần Thị Bình" },
+    { "slug": "mang-may-tinh", "name": "Mạng máy tính", "teacher": "ThS. Lê Quang Cường" },
+    { "slug": "cong-nghe-phan-mem", "name": "Công nghệ phần mềm", "teacher": "TS. Phạm Minh Đức" }
+  ],
+  "deadlines": [
+    { "id": 1, "title": "BTTH 3: Xây dựng Class Deadline Hub", "subjectSlug": "lap-trinh-web-nang-cao", "dueDate": "2026-11-20T23:59:00+07:00", "description": "Xây dựng cổng deadline của lớp bằng Next.js: SSG, ISR, SSR, NextAuth, middleware và SEO." },
+    { "id": 2, "title": "BTTH 4: Triển khai ứng dụng lên Vercel", "subjectSlug": "lap-trinh-web-nang-cao", "dueDate": "2026-12-05T23:59:00+07:00", "description": "Deploy ứng dụng Next.js lên Vercel và cấu hình biến môi trường." },
+    { "id": 3, "title": "Báo cáo giữa kỳ Lập trình web nâng cao", "subjectSlug": "lap-trinh-web-nang-cao", "dueDate": "2026-11-10T17:00:00+07:00", "description": "Nộp báo cáo giữa kỳ bản PDF lên hệ thống LMS." },
+    { "id": 4, "title": "Bài tập chuẩn hoá lược đồ quan hệ", "subjectSlug": "co-so-du-lieu", "dueDate": "2026-11-08T23:59:00+07:00", "description": "Chuẩn hoá lược đồ đến dạng chuẩn 3NF và BCNF." },
+    { "id": 5, "title": "Thực hành truy vấn SQL nâng cao", "subjectSlug": "co-so-du-lieu", "dueDate": "2026-11-18T23:59:00+07:00", "description": "Viết truy vấn JOIN, GROUP BY, subquery trên cơ sở dữ liệu mẫu." },
+    { "id": 6, "title": "Đồ án thiết kế CSDL quản lý thư viện", "subjectSlug": "co-so-du-lieu", "dueDate": "2026-12-15T23:59:00+07:00", "description": "Thiết kế ERD, lược đồ quan hệ và script tạo bảng." },
+    { "id": 7, "title": "Lab cấu hình VLAN và định tuyến", "subjectSlug": "mang-may-tinh", "dueDate": "2026-11-12T23:59:00+07:00", "description": "Cấu hình VLAN, inter-VLAN routing trên Cisco Packet Tracer." },
+    { "id": 8, "title": "Bài tập chia mạng con (Subnetting)", "subjectSlug": "mang-may-tinh", "dueDate": "2026-11-01T23:59:00+07:00", "description": "Chia mạng con VLSM cho mô hình mạng doanh nghiệp." },
+    { "id": 9, "title": "Báo cáo giao thức tầng giao vận", "subjectSlug": "mang-may-tinh", "dueDate": "2026-12-01T23:59:00+07:00", "description": "So sánh TCP và UDP, phân tích bắt gói bằng Wireshark." },
+    { "id": 10, "title": "Tài liệu đặc tả yêu cầu (SRS)", "subjectSlug": "cong-nghe-phan-mem", "dueDate": "2026-11-15T23:59:00+07:00", "description": "Viết SRS cho đề tài nhóm theo mẫu IEEE 830." },
+    { "id": 11, "title": "Thiết kế UML: Use case và Class diagram", "subjectSlug": "cong-nghe-phan-mem", "dueDate": "2026-11-28T23:59:00+07:00", "description": "Vẽ sơ đồ use case, class và sequence cho hệ thống." },
+    { "id": 12, "title": "Demo sản phẩm và báo cáo cuối kỳ", "subjectSlug": "cong-nghe-phan-mem", "dueDate": "2026-12-20T08:00:00+07:00", "description": "Demo sản phẩm trước lớp và nộp báo cáo tổng kết." }
+  ],
+  "completions": {}
+}
