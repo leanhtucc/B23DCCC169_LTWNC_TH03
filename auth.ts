@@ -14,8 +14,8 @@ type Account = {
 };
 
 const ACCOUNTS: Account[] = [
-  { id: 'u-admin', name: 'Lớp trưởng', email: 'admin@ptit.edu.vn', password: 'admin123', role: 'admin' },
-  { id: 'u-sv', name: 'Sinh viên', email: 'sv@ptit.edu.vn', password: 'sv123456', role: 'user' },
+  { id: 'u-admin', name: 'Nguyễn Văn Admin', email: 'admin@ptit.edu.vn', password: 'admin123', role: 'admin' },
+  { id: 'u-sv', name: 'Trần Thị Sinh', email: 'sv@ptit.edu.vn', password: 'sv123456', role: 'user' },
 ];
 
 const adminEmails = (process.env.ADMIN_EMAILS ?? '')

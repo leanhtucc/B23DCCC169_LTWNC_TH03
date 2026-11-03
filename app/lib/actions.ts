@@ -1,6 +1,5 @@
 'use server';
 
-import { AuthError } from 'next-auth';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -19,26 +18,6 @@ import {
 function safeRedirect(target: FormDataEntryValue | null) {
   const value = typeof target === 'string' ? target : '';
   return value.startsWith('/') && !value.startsWith('//') ? value : '/dashboard';
-}
-
-export async function authenticate(
-  _prev: string | undefined,
-  formData: FormData,
-) {
-  try {
-    await signIn('credentials', {
-      email: formData.get('email'),
-      password: formData.get('password'),
-      redirectTo: safeRedirect(formData.get('redirectTo')),
-    });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return error.type === 'CredentialsSignin'
-        ? 'Email hoặc mật khẩu không đúng.'
-        : 'Đã có lỗi xảy ra, vui lòng thử lại.';
-    }
-    throw error; // redirect khi đăng nhập thành công
-  }
 }
 
 export async function authenticateGitHub(formData: FormData) {
@@ -91,6 +70,7 @@ const AddSchema = z.object({
 
 export type AddState = {
   ok?: boolean;
+  values?: Record<string, string>;
   errors?: Partial<Record<'title' | 'subjectSlug' | 'dueDate' | 'description', string[]>>;
   message?: string;
 };
@@ -101,13 +81,14 @@ export async function addDeadlineAction(
 ): Promise<AddState> {
   await requireCan('add');
 
-  const parsed = AddSchema.safeParse(Object.fromEntries(formData));
+  const values = Object.fromEntries(formData) as Record<string, string>;
+  const parsed = AddSchema.safeParse(values);
   if (!parsed.success) {
-    return { errors: parsed.error.flatten().fieldErrors, message: 'Dữ liệu không hợp lệ.' };
+    return { errors: parsed.error.flatten().fieldErrors, values, message: 'Dữ liệu không hợp lệ.' };
   }
   const subjects = await getSubjects();
   if (!subjects.some((s) => s.slug === parsed.data.subjectSlug)) {
-    return { errors: { subjectSlug: ['Môn học không tồn tại'] }, message: 'Dữ liệu không hợp lệ.' };
+    return { errors: { subjectSlug: ['Môn học không tồn tại'] }, values, message: 'Dữ liệu không hợp lệ.' };
   }
 
   const created = await addDeadline({

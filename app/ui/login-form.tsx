@@ -1,16 +1,39 @@
 'use client';
 
-import { useActionState } from 'react';
-import { authenticate, authenticateGitHub } from '@/app/lib/actions';
+import { useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
+import { authenticateGitHub } from '@/app/lib/actions';
 
 export default function LoginForm({ callbackUrl }: { callbackUrl: string }) {
-  const [error, formAction, pending] = useActionState(authenticate, undefined);
+  const router = useRouter();
+  const [error, setError] = useState<string>();
+  const [pending, setPending] = useState(false);
+
+  // Dùng signIn phía client: cập nhật SessionProvider (header) ngay và không reset form khi sai mật khẩu.
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const data = new FormData(e.currentTarget);
+    setPending(true);
+    setError(undefined);
+    const res = await signIn('credentials', {
+      email: data.get('email'),
+      password: data.get('password'),
+      redirect: false,
+    });
+    setPending(false);
+    if (!res || res.error) {
+      setError('Email hoặc mật khẩu không đúng.');
+      return;
+    }
+    router.push(callbackUrl);
+    router.refresh();
+  }
 
   return (
     <div className="space-y-4">
-      <form action={formAction} className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
+      <form onSubmit={onSubmit} className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
         <h1 className="text-2xl font-bold">Đăng nhập</h1>
-        <input type="hidden" name="redirectTo" value={callbackUrl} />
         <div>
           <label htmlFor="email" className="mb-1 block text-sm font-medium">Email</label>
           <input id="email" name="email" type="email" required className="w-full rounded-md border-gray-300 text-sm" />

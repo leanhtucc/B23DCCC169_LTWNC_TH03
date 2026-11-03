@@ -14,12 +14,12 @@ export default function AddDeadlineForm({ subjects }: { subjects: Subject[] }) {
       <h2 className="text-lg font-semibold">Thêm deadline</h2>
       <div>
         <label htmlFor="title" className="mb-1 block text-sm font-medium">Tiêu đề</label>
-        <input id="title" name="title" required className="w-full rounded-md border-gray-300 text-sm" />
+        <input id="title" name="title" required defaultValue={state.values?.title}className="w-full rounded-md border-gray-300 text-sm" />
         <p className="text-xs text-red-600">{state.errors?.title?.[0]}</p>
       </div>
       <div>
         <label htmlFor="subjectSlug" className="mb-1 block text-sm font-medium">Môn học</label>
-        <select id="subjectSlug" name="subjectSlug" required className="w-full rounded-md border-gray-300 text-sm">
+        <select id="subjectSlug" name="subjectSlug" required defaultValue={state.values?.subjectSlug}className="w-full rounded-md border-gray-300 text-sm">
           {subjects.map((s) => (
             <option key={s.slug} value={s.slug}>{s.name}</option>
           ))}
@@ -28,12 +28,12 @@ export default function AddDeadlineForm({ subjects }: { subjects: Subject[] }) {
       </div>
       <div>
         <label htmlFor="dueDate" className="mb-1 block text-sm font-medium">Hạn nộp</label>
-        <input id="dueDate" name="dueDate" type="datetime-local" required className="w-full rounded-md border-gray-300 text-sm" />
+        <input id="dueDate" name="dueDate" type="datetime-local" required defaultValue={state.values?.dueDate}className="w-full rounded-md border-gray-300 text-sm" />
         <p className="text-xs text-red-600">{state.errors?.dueDate?.[0]}</p>
       </div>
       <div>
         <label htmlFor="description" className="mb-1 block text-sm font-medium">Mô tả</label>
-        <textarea id="description" name="description" rows={3} className="w-full rounded-md border-gray-300 text-sm" />
+        <textarea id="description" name="description" rows={3} defaultValue={state.values?.description}className="w-full rounded-md border-gray-300 text-sm" />
         <p className="text-xs text-red-600">{state.errors?.description?.[0]}</p>
       </div>
       <button
