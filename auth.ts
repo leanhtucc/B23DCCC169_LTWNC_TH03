@@ -27,6 +27,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig,
   providers: [
     GitHub({
+      // GitHub gửi tham số `iss` (RFC 9207); Auth.js bản này mặc định mong đợi issuer khác nên báo lỗi.
+      issuer: 'https://github.com/login/oauth',
       profile(profile) {
         const email = profile.email?.toLowerCase();
         return {
