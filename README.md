@@ -2,6 +2,8 @@
 
 Cổng web deadline của lớp (BTTH 3 – Lập trình web nâng cao). Next.js 16 (App Router), NextAuth v5 (Credentials + GitHub, JWT), Tailwind, dữ liệu lưu bằng file JSON phía server (`data/deadlines.json`).
 
+**Bản deploy (Vercel):** https://b23-dccc-169-ltwnc-th-03.vercel.app
+
 ## Cách chạy
 
 ```bash
@@ -104,6 +106,17 @@ Metadata động + ảnh OG sinh động cho `/deadlines/[id]`, JSON-LD `Breadcr
 ![Lighthouse /deadlines/1](docs/lighthouse-deadline-1.webp)
 
 ![Lighthouse /deadlines](docs/lighthouse-deadlines.webp)
+
+Đo trên bản deploy Vercel (Chrome DevTools, desktop, chưa đăng nhập):
+
+| Trang | Performance | Accessibility | Best Practices | SEO |
+|---|---|---|---|---|
+| `/deadlines/1` | 99 | 100 | 100 | 100 |
+| `/deadlines` | 100 | 96 | 100 | 100 |
+
+![Lighthouse Vercel /deadlines/1](docs/lighthouse-vercel-deadline-1.webp)
+
+![Lighthouse Vercel /deadlines](docs/lighthouse-vercel-deadlines.webp)
 
 ## View-source `/deadlines/1`
 
